@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Control de Packeos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .btn-lg {
+      font-size: 1.5rem;
+      padding: 0.75rem 1.25rem;
+    }
+    .table td, .table th {
+      vertical-align: middle;
+      font-size: 1.25rem;
+    }
+    #totalDisplay {
+      font-size: 1.75rem;
+      font-weight: bold;
+    }
+    .money {
+      font-weight: 500;
+      color: green;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+  <div class="container py-4">
+    <div class="d-flex justify-content-between flex-wrap mb-3">
+      <button class="btn btn-danger btn-lg mb-2" onclick="clearAll()">Reiniciar Packeos</button>
+      <div id="totalDisplay" class="mb-2">TOTAL: 0 packeos | $0 — Tandem: $0 / Deportivo: $0</div>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-success btn-lg" onclick="addClient()">Agregar Cliente</button>
+        <button class="btn btn-secondary btn-lg" onclick="configurePrices()">Configurar Precios</button>
+        <button class="btn btn-outline-primary btn-lg" onclick="forceUpdatePrices()">Actualizar desde Sheets</button>
+      </div>
+    </div>
+
+    <table class="table table-bordered bg-white">
+      <thead class="table-dark">
+        <tr>
+          <th>Cliente</th>
+          <th>Packeos</th>
+          <th>Total $</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="packTableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'packJobs';
+    const PRICE_KEY = 'packPrices';
+    const FIXED_CLIENTS = ['Tandems', 'Escuela'];
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzsRu_iqD-T4q452MAhF1tZfAUM0iAAUVQ7dsyvdQU7vykzL2q9tPV-cgXJOMRDixZaCQ/exec';
+
+    let clients = [];
+    let prices = { tandem: 0, deportivo: 0 };
+
+    function loadData() {
+      const storedClients = localStorage.getItem(STORAGE_KEY);
+      const storedPrices = localStorage.getItem(PRICE_KEY);
+
+      if (storedClients) {
+        clients = JSON.parse(storedClients);
+        ensureFixedClients();
+      } else {
+        clients = FIXED_CLIENTS.map(name => ({ name, count: 0 }));
+        saveData();
+      }
+
+      if (storedPrices) {
+        prices = JSON.parse(storedPrices);
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
+    }
+
+    function savePrices() {
+      localStorage.setItem(PRICE_KEY, JSON.stringify(prices));
+    }
+
+    function ensureFixedClients() {
+      FIXED_CLIENTS.forEach(fixed => {
+        if (!clients.some(c => c.name === fixed)) {
+          clients.unshift({ name: fixed, count: 0 });
+        }
+      });
+    }
+
+    function updateTable() {
+      const tbody = document.getElementById('packTableBody');
+      tbody.innerHTML = '';
+      let totalPacks = 0;
+      let totalMoney = 0;
+
+      clients.forEach((client, index) => {
+        const isFixed = FIXED_CLIENTS.includes(client.name);
+        const price = client.name === 'Tandems' ? prices.tandem : prices.deportivo;
+        const subtotal = client.count * price;
+        totalPacks += client.count;
+        totalMoney += subtotal;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${client.name}</td>
+          <td>${client.count}</td>
+          <td class="money">$${subtotal}</td>
+          <td>
+            <button class="btn btn-primary btn-lg me-2" onclick="changeCount(${index}, 1)">+</button>
+            <button class="btn btn-warning btn-lg me-2" onclick="changeCount(${index}, -1)">−</button>
+            ${!isFixed ? `<button class="btn btn-outline-danger btn-lg" onclick="deleteClient(${index})">🗑️</button>` : ''}
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById('totalDisplay').innerText =
+        `TOTAL: ${totalPacks} packeos | $${totalMoney} — Tandem: $${prices.tandem} / Deportivo: $${prices.deportivo}`;
+      saveData();
+    }
+
+    function addClient() {
+      const name = prompt("Ingrese el nombre del cliente:");
+      if (name && name.trim()) {
+        const cleanName = name.trim();
+        if (clients.some(c => c.name.toLowerCase() === cleanName.toLowerCase())) {
+          alert("Ese cliente ya existe.");
+          return;
+        }
+        clients.push({ name: cleanName, count: 0 });
+        updateTable();
+      }
+    }
+
+    function changeCount(index, delta) {
+      clients[index].count = Math.max(0, clients[index].count + delta);
+      updateTable();
+    }
+
+    function deleteClient(index) {
+      if (FIXED_CLIENTS.includes(clients[index].name)) return;
+      if (confirm(`¿Eliminar al cliente "${clients[index].name}"?`)) {
+        clients.splice(index, 1);
+        updateTable();
+      }
+    }
+
+    function clearAll() {
+      if (confirm("¿Seguro que querés reiniciar los contadores de packeos?")) {
+        clients.forEach(client => client.count = 0);
+        updateTable();
+      }
+    }
+
+    function configurePrices() {
+      const tandem = prompt("Ingrese el precio por packeo Tandem:", prices.tandem);
+      const deportivo = prompt("Ingrese el precio por packeo Deportivo:", prices.deportivo);
+
+      if (tandem !== null && deportivo !== null) {
+        prices.tandem = parseInt(tandem) || 0;
+        prices.deportivo = parseInt(deportivo) || 0;
+        savePrices();
+        updateTable();
+      }
+    }
+
+    async function fetchInitialPrices(force = false) {
+      try {
+        const response = await fetch(SHEET_URL);
+        const data = await response.json();
+
+        const nuevoDeportivo = parseInt(data.deportivo) || 0;
+        const nuevoTandem = parseInt(data.tandem) || 0;
+
+        const preciosLocales = localStorage.getItem(PRICE_KEY);
+        if (preciosLocales) {
+          const preciosGuardados = JSON.parse(preciosLocales);
+
+          const diferente = (
+            preciosGuardados.deportivo !== nuevoDeportivo ||
+            preciosGuardados.tandem !== nuevoTandem
+          );
+
+          if (diferente || force) {
+            const confirmar = confirm(
+              `Se detectaron precios diferentes:\n\n` +
+              `Tandem actual: $${preciosGuardados.tandem} → nuevo: $${nuevoTandem}\n` +
+              `Deportivo actual: $${preciosGuardados.deportivo} → nuevo: $${nuevoDeportivo}\n\n` +
+              `¿Querés actualizar los precios?`
+            );
+            if (confirmar) {
+              prices.deportivo = nuevoDeportivo;
+              prices.tandem = nuevoTandem;
+              savePrices();
+            } else {
+              prices = preciosGuardados;
+            }
+          } else {
+            prices = preciosGuardados;
+          }
+        } else {
+          prices.deportivo = nuevoDeportivo;
+          prices.tandem = nuevoTandem;
+          savePrices();
+        }
+
+      } catch (error) {
+        console.error("Error al obtener precios desde Google Sheets:", error);
+      }
+    }
+
+    function forceUpdatePrices() {
+      fetchInitialPrices(true).then(updateTable);
+    }
+
+    window.onload = async () => {
+      loadData();
+      await fetchInitialPrices();
+      updateTable();
+    };
+  </script>
+
+</body>
+</html>
