@@ -93,7 +93,7 @@
     <div class="header-info mb-3">
       <div class="d-flex justify-content-between">
         <div class="total">
-          <div id="totalDisplay">TOTAL: 0 packeos | $0</div>
+          <div id="totalDisplay">TOTAL: 0 | $0</div>
         </div>
         <div class="prices">
           <div>Precio Tandem: <span class="price" id="priceTandem">$0</span></div>
@@ -196,7 +196,7 @@
       });
 
       document.getElementById('totalDisplay').innerText =
-        `TOTAL: ${totalPacks} packeos | $${totalMoney}`;
+        `TOTAL: ${totalPacks} | $${totalMoney}`;
       document.getElementById('priceTandem').innerText = `$${prices.tandem}`;
       document.getElementById('priceDeportivo').innerText = `$${prices.deportivo}`;
 
