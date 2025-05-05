@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de Packeos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
   <style>
     body {
       font-size: 1.25rem; /* Fuente más grande */
     }
 
     .btn-lg {
-      font-size: 2rem; /* Botones más grandes */
-      padding: 1rem 1.5rem; /* Espaciado más cómodo */
+      font-size: 1.5rem; /* Botones más pequeños */
+      padding: 0.75rem 1.25rem; /* Espaciado más ajustado */
     }
 
     .table td, .table th {
@@ -30,7 +31,6 @@
       color: green;
     }
 
-    /* Fijar el encabezado de la tabla y hacer scroll solo en el cuerpo */
     .table-wrapper {
       height: 400px;
       overflow-y: auto;
@@ -43,19 +43,71 @@
       background-color: #f8f9fa;
       z-index: 10;
     }
+
+    .action-btns {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .action-btns button {
+      font-size: 1.5rem;
+      padding: 0.5rem;
+    }
+
+    .price-section {
+      font-size: 1.2rem;
+      text-align: center;
+      margin-top: 10px;
+      color: #6c757d;
+    }
+
+    .price-section .price {
+      font-weight: bold;
+      color: #343a40;
+    }
+
+    .header-info {
+      margin-bottom: 20px;
+    }
+
+    .header-info .total {
+      font-size: 1.6rem;
+      font-weight: bold;
+    }
+
+    .header-info .prices {
+      font-size: 1.1rem;
+      margin-top: 5px;
+    }
+
+    .header-info .prices span {
+      margin-right: 20px;
+    }
   </style>
 </head>
 <body class="bg-light">
 
   <div class="container py-4">
-    <div class="d-flex justify-content-between flex-wrap mb-3">
-      <button class="btn btn-danger btn-lg mb-2" onclick="clearAll()">Reiniciar Packeos</button>
-      <div id="totalDisplay" class="mb-2">TOTAL: 0 packeos | $0 — Tandem: $0 / Deportivo: $0</div>
-      <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-success btn-lg" onclick="addClient()">Agregar Cliente</button>
-        <button class="btn btn-secondary btn-lg" onclick="configurePrices()">Configurar Precios</button>
-        <button class="btn btn-outline-primary btn-lg" onclick="forceUpdatePrices()">Actualizar desde Sheets</button>
+    <!-- Información principal: Total y Precios -->
+    <div class="header-info mb-3">
+      <div class="d-flex justify-content-between">
+        <div class="total">
+          <div id="totalDisplay">TOTAL: 0 packeos | $0</div>
+        </div>
+        <div class="prices">
+          <div>Precio Tandem: <span class="price" id="priceTandem">$0</span></div>
+          <div>Precio Deportivo: <span class="price" id="priceDeportivo">$0</span></div>
+        </div>
       </div>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="action-btns mb-3">
+      <button class="btn btn-danger btn-sm" onclick="clearAll()"><i class="fas fa-trash"></i></button>
+      <button class="btn btn-success btn-sm" onclick="addClient()"><i class="fas fa-user-plus"></i></button>
+      <button class="btn btn-secondary btn-sm" onclick="configurePrices()"><i class="fas fa-cogs"></i></button>
+      <button class="btn btn-outline-primary btn-sm" onclick="forceUpdatePrices()"><i class="fas fa-sync-alt"></i></button>
     </div>
 
     <!-- Contenedor de la tabla con scroll -->
@@ -135,16 +187,19 @@
           <td>${client.count}</td>
           <td class="money">$${subtotal}</td>
           <td>
-            <button class="btn btn-primary btn-lg me-2" onclick="changeCount(${index}, 1)">+</button>
-            <button class="btn btn-warning btn-lg me-2" onclick="changeCount(${index}, -1)">−</button>
-            ${!isFixed ? `<button class="btn btn-outline-danger btn-lg" onclick="deleteClient(${index})">🗑️</button>` : ''}
+            <button class="btn btn-primary btn-sm me-2" onclick="changeCount(${index}, 1)"><i class="fas fa-plus"></i></button>
+            <button class="btn btn-warning btn-sm me-2" onclick="changeCount(${index}, -1)"><i class="fas fa-minus"></i></button>
+            ${!isFixed ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteClient(${index})"><i class="fas fa-trash-alt"></i></button>` : ''}
           </td>
         `;
         tbody.appendChild(row);
       });
 
       document.getElementById('totalDisplay').innerText =
-        `TOTAL: ${totalPacks} packeos | $${totalMoney} — Tandem: $${prices.tandem} / Deportivo: $${prices.deportivo}`;
+        `TOTAL: ${totalPacks} packeos | $${totalMoney}`;
+      document.getElementById('priceTandem').innerText = `$${prices.tandem}`;
+      document.getElementById('priceDeportivo').innerText = `$${prices.deportivo}`;
+
       saveData();
     }
 
@@ -161,22 +216,20 @@
       }
     }
 
-function changeCount(index, delta) {
-  const client = clients[index];
-  
-  // Pedir confirmación siempre que se intente reducir el count
-  if (delta === -1) {
-    if (confirm(`¿Seguro que querés reducir el número de packeos de "${client.name}"?`)) {
+    function changeCount(index, delta) {
+      const client = clients[index];
+      
+      if (delta === -1) {
+        if (confirm(`¿Seguro que querés reducir el número de packeos de "${client.name}"?`)) {
+          clients[index].count = Math.max(0, client.count + delta);
+          updateTable();
+        }
+        return;
+      }
+
       clients[index].count = Math.max(0, client.count + delta);
       updateTable();
     }
-    return;
-  }
-
-  // Si delta es +1, no es necesario confirmar
-  clients[index].count = Math.max(0, client.count + delta);
-  updateTable();
-}
 
     function deleteClient(index) {
       if (FIXED_CLIENTS.includes(clients[index].name)) return;
@@ -194,11 +247,9 @@ function changeCount(index, delta) {
     }
 
     function configurePrices() {
-      const tandem = prompt("Ingrese el precio por packeo Tandem:", prices.tandem);
       const deportivo = prompt("Ingrese el precio por packeo Deportivo:", prices.deportivo);
 
-      if (tandem !== null && deportivo !== null) {
-        prices.tandem = parseInt(tandem) || 0;
+      if (deportivo !== null) {
         prices.deportivo = parseInt(deportivo) || 0;
         savePrices();
         updateTable();
