@@ -92,9 +92,9 @@
           <td class="text-center">$${client.count * price}</td>
           <td class="text-end">
   <div class="d-flex flex-wrap justify-content-end gap-1">
-    <button class="btn btn-success btn-lg " onclick="changeCount(${index}, 1)">+</button>
-    <button class="btn btn-danger btn-lg" onclick="changeCount(${index}, -1)">-</button>
-    <button class="btn btn-secondary btn-lg" onclick="togglePaid(${index})"><i class="fas fa-dollar-sign"></i></button>
+    <button class="btn btn-success  " onclick="changeCount(${index}, 1)">+</button>
+    <button class="btn btn-danger " onclick="changeCount(${index}, -1)">-</button>
+    <button class="btn btn-secondary " onclick="togglePaid(${index})"><i class="fas fa-dollar-sign"></i></button>
     ${client.name !== 'Tandems' && client.name !== 'Escuela' ? `<button class="btn btn-outline-danger btn-lg " onclick="deleteClient(${index})"><i class="fas fa-times"></i></button>` : ''}
   </div>
 </td>
