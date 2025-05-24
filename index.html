@@ -11,7 +11,7 @@
     .table-wrapper { height: 400px; overflow-y: auto; display: block; }
     .table thead { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
     .table td, .table th { vertical-align: middle; font-size: 1.0rem; }
-    .action-btns button { font-size: 1.5rem; padding: 0.5rem; }
+    .action-btns button { font-size: 1.0rem; padding: 0.5rem; }
     .header-info .total { font-size: 1.6rem; font-weight: bold; }
     .header-info .prices { font-size: 1.1rem; }
     .icon-btn { background: none; border: none; font-size: 1.5rem; margin-right: 0.5rem; }
@@ -92,10 +92,10 @@
           <td class="text-center">$${client.count * price}</td>
           <td class="text-end">
   <div class="d-flex flex-wrap justify-content-end gap-1">
-    <button class="btn btn-success btn-lg px-3 py-2" onclick="changeCount(${index}, 1)">+</button>
-    <button class="btn btn-danger btn-lg px-3 py-2" onclick="changeCount(${index}, -1)">-</button>
-    <button class="btn btn-secondary btn-lg px-3 py-2" onclick="togglePaid(${index})"><i class="fas fa-dollar-sign"></i></button>
-    ${client.name !== 'Tandems' && client.name !== 'Escuela' ? `<button class="btn btn-outline-danger btn-lg px-3 py-2" onclick="deleteClient(${index})"><i class="fas fa-times"></i></button>` : ''}
+    <button class="btn btn-success btn-lg " onclick="changeCount(${index}, 1)">+</button>
+    <button class="btn btn-danger btn-lg" onclick="changeCount(${index}, -1)">-</button>
+    <button class="btn btn-secondary btn-lg" onclick="togglePaid(${index})"><i class="fas fa-dollar-sign"></i></button>
+    ${client.name !== 'Tandems' && client.name !== 'Escuela' ? `<button class="btn btn-outline-danger btn-lg " onclick="deleteClient(${index})"><i class="fas fa-times"></i></button>` : ''}
   </div>
 </td>
         `;
